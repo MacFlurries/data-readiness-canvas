@@ -1,0 +1,4436 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
+<title>Data Needs Assessment Tool</title>
+
+<!-- JSZip untuk membaca DOCX di browser (dibaca langsung dari XML agar checkbox native Word ikut terbaca) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+
+:root {
+  --navy: #132A46;
+  --ink: #26313F;
+  --muted: #6B7785;
+  --line: #D7DEE5;
+  --paper: #FBFAF7;
+  --white: #FFFFFF;
+
+  --green: #1E7D46;
+  --red: #B23B2E;
+  --orange: #E07A29;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #F3F5F7;
+  color: var(--ink);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.wrap {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 70px;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.top {
+  background: var(--navy);
+  color: white;
+  border-radius: 20px;
+  padding: 38px 42px 40px;
+  margin-bottom: 22px;
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #8FA0B8;
+}
+
+.top h1 {
+  margin: 12px 0 10px;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -1.5px;
+}
+
+.top p {
+  max-width: 780px;
+  margin: 0;
+  color: #C7D0DC;
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.f label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: #8FA0B8;
+}
+
+.f input {
+  width: 100%;
+  border: 1px solid #4C5F7A;
+  background: rgba(255,255,255,.06);
+  color: white;
+  border-radius: 10px;
+  padding: 13px 14px;
+  outline: none;
+}
+
+.f input::placeholder {
+  color: #8FA0B8;
+}
+
+.f input:focus {
+  border-color: #AFC1D7;
+}
+
+/* =========================================================
+   PANEL
+========================================================= */
+
+.panel {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 30px;
+  margin-bottom: 22px;
+  box-shadow: 0 8px 30px rgba(19,42,70,.05);
+}
+
+.panel h2 {
+  margin: 0 0 7px;
+  font-size: 22px;
+  color: var(--navy);
+}
+
+.sub {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+/* =========================================================
+   UPLOAD
+========================================================= */
+
+.upload-zone {
+  border: 2px dashed #BFC9D5;
+  border-radius: 18px;
+  padding: 42px 25px;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    .2s ease;
+  background: #FAFBFC;
+}
+
+.upload-zone:hover,
+.upload-zone.dragover {
+  border-color: var(--navy);
+  background: #F4F7FA;
+  transform: translateY(-1px);
+}
+
+.upload-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.upload-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.upload-desc {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.upload-format {
+  display: inline-block;
+  margin-top: 15px;
+  background: #E9EDF1;
+  color: #596574;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   FILE STATUS
+========================================================= */
+
+.file-status {
+  min-height: 20px;
+  margin-top: 15px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.file-status.loading {
+  color: #596574;
+}
+
+.file-status.success {
+  color: var(--green);
+}
+
+.file-status.error {
+  color: var(--red);
+}
+
+/* =========================================================
+   PARSED SUMMARY
+========================================================= */
+
+.parsed-summary {
+  margin-top: 20px;
+  border: 1px solid #D9E0E7;
+  border-radius: 14px;
+  padding: 18px;
+  background: #FAFBFC;
+}
+
+.summary-title {
+  font-weight: 800;
+  color: var(--navy);
+  margin-bottom: 14px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.summary-grid > div {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 13px;
+}
+
+.summary-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 5px;
+}
+
+.summary-grid b {
+  font-size: 16px;
+  color: var(--navy);
+}
+
+/* =========================================================
+   BUTTON
+========================================================= */
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 13px 18px;
+  cursor: pointer;
+  font-weight: 800;
+  transition: .15s ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.primary {
+  background: var(--navy);
+  color: white;
+}
+
+.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(19,42,70,.2);
+}
+
+.secondary {
+  background: white;
+  color: var(--navy);
+  border: 1px solid #C8D1DB;
+}
+
+.secondary:hover {
+  background: #F4F6F8;
+}
+
+/* =========================================================
+   DEEP ANALYSIS
+========================================================= */
+
+.deeper-panel {
+  border-left: 5px solid var(--navy);
+}
+
+.step-label {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: #718093;
+  margin-bottom: 8px;
+}
+
+.question {
+  margin-top: 25px;
+}
+
+.question > label {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--navy);
+  margin-bottom: 12px;
+}
+
+.choice-group {
+  display: grid;
+  gap: 10px;
+}
+
+.choice-group.compact {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border: 1px solid var(--line);
+  background: #FCFDFE;
+  padding: 14px;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: .15s ease;
+}
+
+.choice:hover {
+  border-color: #AAB8C7;
+  background: #F8FAFC;
+}
+
+.choice:has(input:checked) {
+  border-color: var(--navy);
+  background: #F1F5F9;
+}
+
+.choice input {
+  margin-top: 3px;
+}
+
+.choice b {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.choice small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+/* =========================================================
+   IMPACT
+========================================================= */
+
+.money-input {
+  margin-top: 20px;
+}
+
+.money-input label {
+  display: block;
+  font-weight: 800;
+  color: var(--navy);
+  margin-bottom: 9px;
+  font-size: 14px;
+}
+
+.money-input label span {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.money-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid #C9D2DC;
+  border-radius: 10px;
+  overflow: hidden;
+  background: white;
+}
+
+.money-wrap span {
+  padding-left: 14px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.money-wrap input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  padding: 13px;
+}
+
+.money-input select,
+#customDaCost {
+  width: 100%;
+  border: 1px solid #C9D2DC;
+  border-radius: 10px;
+  background: white;
+  padding: 13px;
+  outline: none;
+}
+
+.money-input small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 7px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   RESULT
+========================================================= */
+
+#result {
+  display: none;
+}
+
+.r-card {
+  background: var(--paper);
+  border: 1px solid #D7DDE4;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(19,42,70,.09);
+}
+
+.r-header {
+  background: var(--navy);
+  padding: 34px 38px;
+  color: white;
+}
+
+.r-header h2 {
+  margin: 10px 0 5px;
+  font-size: 31px;
+}
+
+.r-header .ind {
+  color: #C7D0DC;
+  font-size: 14px;
+}
+
+.headline {
+  margin: 26px 38px;
+  border-radius: 16px;
+  padding: 27px;
+  color: white;
+}
+
+.headline .lbl {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  opacity: .85;
+}
+
+.headline .asp {
+  margin-top: 12px;
+  font-size: 35px;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.headline .sc {
+  margin-top: 9px;
+  font-size: 13px;
+  opacity: .9;
+}
+
+.box {
+  margin: 0 38px 18px;
+  background: white;
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+
+.box.bad {
+  border: 1px solid #E3B7A3;
+}
+
+.box.good {
+  border: 1px solid #B7D3C0;
+}
+
+.box .tag {
+  display: block;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+  margin-bottom: 8px;
+}
+
+.box.bad .tag {
+  color: var(--red);
+}
+
+.box.good .tag {
+  color: var(--green);
+}
+
+.box p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.bars {
+  padding: 10px 38px 25px;
+}
+
+.bars h3 {
+  font-size: 12px;
+  letter-spacing: 1.1px;
+  color: var(--navy);
+  margin: 8px 0 18px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 125px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.bar-row .name {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.track {
+  height: 17px;
+  border-radius: 10px;
+  background: #E9EDF1;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: inherit;
+  min-width: 3px;
+}
+
+.bar-row .val {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.maturity-box {
+  margin: 8px 38px 18px;
+  background: white;
+  border: 1px solid #CBD5DF;
+  border-radius: 15px;
+  padding: 22px;
+}
+
+.maturity-box .m-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.maturity-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  background: var(--navy);
+  color: white;
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.maturity-box .m-title {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--navy);
+}
+
+.maturity-box .m-desc {
+  margin: 10px 0 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+.m-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.m-step {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+  background: #FAFBFC;
+}
+
+.m-step.active {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: white;
+}
+
+.insight-callout {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #F1F5F9;
+  border-left: 4px solid var(--navy);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+.insight-callout b {
+  color: var(--navy);
+}
+
+@media (max-width: 750px) {
+
+  .m-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+.final-insight {
+  margin: 8px 38px 25px;
+  background: white;
+  border: 1px solid #CBD5DF;
+  border-radius: 15px;
+  padding: 21px;
+}
+
+.final-insight h3 {
+  margin: 0 0 13px;
+  color: var(--navy);
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.insight-item {
+  border-radius: 10px;
+  background: #F7F9FB;
+  padding: 12px;
+}
+
+.insight-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+
+.insight-item b {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.footer-box {
+  margin: 15px 38px 32px;
+  padding: 23px;
+  border-radius: 15px;
+  background: var(--navy);
+  color: white;
+}
+
+.footer-box .lvl {
+  font-size: 11px;
+  font-weight: 800;
+  color: #8FA0B8;
+  letter-spacing: 1.2px;
+}
+
+.footer-box .act {
+  margin-top: 10px;
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.footer-box .desc {
+  margin-top: 8px;
+  color: #C7D0DC;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.cta {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 17px 0;
+}
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+
+  body {
+    background: white;
+  }
+
+  .wrap {
+    width: 100%;
+    padding: 0;
+  }
+
+  .top,
+  .panel,
+  #deepAnalysis,
+  #impactAnalysis,
+  .cta,
+  #result > .actions {
+    display: none !important;
+  }
+
+  #result {
+    display: block !important;
+  }
+
+  .r-card {
+    box-shadow: none;
+    border: 0;
+  }
+
+  .headline {
+    break-inside: avoid;
+  }
+
+  .box,
+  .maturity-box,
+  .final-insight,
+  .footer-box,
+  .bars {
+    break-inside: avoid;
+  }
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 750px) {
+
+  .wrap {
+    width: min(100% - 20px, 1100px);
+    padding-top: 10px;
+  }
+
+  .top {
+    padding: 28px 23px;
+    border-radius: 15px;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding: 22px;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .choice-group.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .headline,
+  .box,
+  .bars,
+  .footer-box,
+  .final-insight {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+
+  .r-header {
+    padding: 28px 22px;
+  }
+
+  .headline {
+    padding: 22px;
+  }
+
+  .headline .asp {
+    font-size: 29px;
+  }
+
+  .bar-row {
+    grid-template-columns: 90px 1fr 35px;
+    gap: 7px;
+  }
+
+  .insight-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+  <!-- =====================================================
+       HEADER
+  ====================================================== -->
+
+  <div class="top">
+
+    <div class="eyebrow">
+      DATA NEEDS ASSESSMENT
+    </div>
+
+    <h1>
+      Result Card Generator
+    </h1>
+
+    <p>
+      Upload Data Needs Canvas yang sudah diisi peserta.
+      Tool akan membaca assessment, menemukan gap bisnis utama,
+      lalu memperdalam analisis hanya pada aspek yang memang
+      membutuhkan perhatian.
+    </p>
+
+    <div class="field-row">
+
+      <div class="f">
+
+        <label for="companyName">
+          NAMA PERUSAHAAN
+        </label>
+
+        <input
+          id="companyName"
+          type="text"
+          placeholder="mis. PT Contoh Maju"
+        >
+
+      </div>
+
+      <div class="f">
+
+        <label for="industry">
+          INDUSTRI
+        </label>
+
+        <input
+          id="industry"
+          type="text"
+          placeholder="mis. Retail & E-commerce"
+        >
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       LAPIS 1 — UPLOAD
+  ====================================================== -->
+
+  <div class="panel">
+
+    <h2>
+      1. Upload Data Needs Assessment
+    </h2>
+
+    <p class="sub">
+      Upload file DOCX yang sudah diisi peserta.
+      Checkbox yang ditandai akan dibaca otomatis oleh tool.
+    </p>
+
+
+    <div
+      class="upload-zone"
+      id="uploadZone"
+    >
+
+      <input
+        type="file"
+        id="docxInput"
+        accept=".docx"
+        hidden
+      >
+
+      <div class="upload-icon">
+        ↑
+      </div>
+
+      <div class="upload-title">
+        Drag & Drop file DOCX di sini
+      </div>
+
+      <div class="upload-desc">
+        atau klik untuk memilih file
+      </div>
+
+      <div class="upload-format">
+        FORMAT .DOCX
+      </div>
+
+    </div>
+
+
+    <div
+      id="fileStatus"
+      class="file-status"
+    ></div>
+
+
+    <div
+      id="parsedSummary"
+      class="parsed-summary"
+      style="display:none;"
+    >
+
+      <div class="summary-title">
+        Assessment berhasil dibaca
+      </div>
+
+      <div class="summary-grid">
+
+        <div>
+          <span>
+            Aspek terbaca
+          </span>
+
+          <b id="parsedCount">
+            0/6
+          </b>
+        </div>
+
+        <div>
+          <span>
+            Kondisi terburuk
+          </span>
+
+          <b id="parsedGap">
+            —
+          </b>
+        </div>
+
+        <div>
+          <span>
+            Total skor
+          </span>
+
+          <b id="parsedScore">
+            —
+          </b>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div class="actions">
+
+      <button
+        class="primary"
+        id="genBtn"
+        disabled
+      >
+        Analisis Assessment →
+      </button>
+
+      <button
+        class="secondary"
+        id="resetBtn"
+      >
+        Reset
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =====================================================
+       LAPIS 2 — DATA READINESS
+  ====================================================== -->
+
+  <div
+    class="panel deeper-panel"
+    id="deepAnalysis"
+    style="display:none;"
+  >
+
+    <div class="step-label">
+      LAPIS 2 · DATA READINESS
+    </div>
+
+    <h2>
+      Perdalam aspek:
+      <span id="deepAspect">
+        —
+      </span>
+    </h2>
+
+    <p class="sub">
+      Pertanyaan ini hanya diberikan untuk aspek yang memiliki
+      gap tertinggi. Tujuannya membedakan antara kebutuhan
+      meningkatkan data foundation dan kebutuhan meningkatkan
+      kemampuan analitik.
+    </p>
+
+
+    <!-- DATA READINESS -->
+
+    <div class="question">
+
+      <label>
+        Bagaimana kondisi data untuk aspek ini?
+      </label>
+
+      <div class="choice-group">
+
+        <label class="choice">
+
+          <input
+            type="radio"
+            name="dataReadiness"
+            value="none"
+          >
+
+          <span>
+
+            <b>
+              Belum ada data
+            </b>
+
+            <small>
+              Data yang dibutuhkan belum dikumpulkan
+              atau belum tersedia secara konsisten.
+            </small>
+
+          </span>
+
+        </label>
+
+
+        <label class="choice">
+
+          <input
+            type="radio"
+            name="dataReadiness"
+            value="raw"
+          >
+
+          <span>
+
+            <b>
+              Ada, tapi belum diolah
+            </b>
+
+            <small>
+              Data tersedia, tetapi belum rutin
+              menjadi insight untuk pengambilan keputusan.
+            </small>
+
+          </span>
+
+        </label>
+
+
+        <label class="choice">
+
+          <input
+            type="radio"
+            name="dataReadiness"
+            value="ready"
+          >
+
+          <span>
+
+            <b>
+              Ada & sudah diolah
+            </b>
+
+            <small>
+              Data tersedia dan sudah digunakan
+              dalam proses analisis.
+            </small>
+
+          </span>
+
+        </label>
+
+      </div>
+
+    </div>
+
+
+    <!-- STAKEHOLDER -->
+
+    <div class="question">
+
+      <label>
+        Siapa pengguna utama insight dari aspek ini?
+      </label>
+
+      <div class="choice-group compact">
+
+        <label class="choice">
+
+          <input
+            type="radio"
+            name="stakeholder"
+            value="management"
+          >
+
+          <span>
+            <b>
+              Manajemen
+            </b>
+          </span>
+
+        </label>
+
+
+        <label class="choice">
+
+          <input
+            type="radio"
+            name="stakeholder"
+            value="team"
+          >
+
+          <span>
+            <b>
+              Tim terkait
+            </b>
+          </span>
+
+        </label>
+
+
+        <label class="choice">
+
+          <input
+            type="radio"
+            name="stakeholder"
+            value="all"
+          >
+
+          <span>
+            <b>
+              Lintas level
+            </b>
+          </span>
+
+        </label>
+
+      </div>
+
+    </div>
+
+
+    <!-- FREQUENCY -->
+
+    <div class="question">
+
+      <label>
+        Seberapa sering keputusan ini membutuhkan insight?
+      </label>
+
+      <div class="choice-group compact">
+
+        <label class="choice">
+
+          <input
+            type="radio"
+            name="frequency"
+            value="rare"
+          >
+
+          <span>
+            <b>
+              Sesekali
+            </b>
+          </span>
+
+        </label>
+
+
+        <label class="choice">
+
+          <input
+            type="radio"
+            name="frequency"
+            value="periodic"
+          >
+
+          <span>
+            <b>
+              Mingguan / bulanan
+            </b>
+          </span>
+
+        </label>
+
+
+        <label class="choice">
+
+          <input
+            type="radio"
+            name="frequency"
+            value="daily"
+          >
+
+          <span>
+            <b>
+              Harian / rutin
+            </b>
+          </span>
+
+        </label>
+
+      </div>
+
+    </div>
+
+
+    <button
+      class="primary"
+      id="continueAnalysis"
+    >
+      Lanjut ke Business Impact →
+    </button>
+
+  </div>
+
+
+  <!-- =====================================================
+       LAPIS 3 — BUSINESS IMPACT
+  ====================================================== -->
+
+  <div
+    class="panel"
+    id="impactAnalysis"
+    style="display:none;"
+  >
+
+    <div class="step-label">
+      LAPIS 3 · BUSINESS IMPACT
+    </div>
+
+    <h2>
+      Berapa besar masalah ini bagi bisnis?
+    </h2>
+
+    <p class="sub">
+      Tidak perlu angka presisi. Gunakan estimasi kasar
+      berdasarkan kondisi perusahaan saat ini.
+    </p>
+
+
+    <div class="money-input">
+
+      <label>
+        Perkiraan kerugian / inefisiensi saat ini
+        <span>per bulan</span>
+      </label>
+
+      <div class="money-wrap">
+
+        <span>
+          Rp
+        </span>
+
+        <input
+          id="monthlyImpact"
+          type="number"
+          min="0"
+          step="100000"
+          placeholder="mis. 30000000"
+        >
+
+      </div>
+
+      <small>
+        Contoh: budget terbuang, lost sales, churn,
+        overtime, inventory tidak optimal, atau
+        biaya proses yang tidak efisien.
+      </small>
+
+    </div>
+
+
+    <div class="money-input">
+
+      <label>
+        Estimasi biaya Data Analyst
+        <span>per bulan</span>
+      </label>
+
+      <select id="daCost">
+
+        <option value="">
+          Pilih estimasi
+        </option>
+
+        <option value="8000000">
+          Rp8 juta — Junior / Entry-level
+        </option>
+
+        <option value="12000000">
+          Rp12 juta — Junior+ / Experienced
+        </option>
+
+        <option value="18000000">
+          Rp18 juta — Dedicated / Experienced
+        </option>
+
+        <option value="25000000">
+          Rp25 juta — Senior / Specialist
+        </option>
+
+        <option value="custom">
+          Masukkan sendiri
+        </option>
+
+      </select>
+
+
+      <input
+        id="customDaCost"
+        type="number"
+        min="0"
+        placeholder="Rp biaya per bulan"
+        style="display:none; margin-top:10px;"
+      >
+
+    </div>
+
+
+    <button
+      class="primary"
+      id="finishAnalysis"
+      style="margin-top:22px;"
+    >
+      Lihat Rekomendasi Final →
+    </button>
+
+  </div>
+
+
+  <!-- =====================================================
+       RESULT CARD
+  ====================================================== -->
+
+  <div id="result">
+
+    <div class="r-card">
+
+
+      <!-- HEADER -->
+
+      <div class="r-header">
+
+        <div class="eyebrow">
+          HASIL DATA NEEDS ASSESSMENT
+        </div>
+
+        <h2 id="rCompany">
+          —
+        </h2>
+
+        <div
+          class="ind"
+          id="rIndustry"
+        >
+          —
+        </div>
+
+      </div>
+
+
+      <!-- HEADLINE -->
+
+      <div
+        class="headline"
+        id="rHeadline"
+      >
+
+        <div class="lbl">
+          ASPEK PALING MEMBUTUHKAN PERHATIAN
+        </div>
+
+        <div
+          class="asp"
+          id="rAspect"
+        >
+          —
+        </div>
+
+        <div
+          class="sc"
+          id="rScore"
+        >
+          —
+        </div>
+
+      </div>
+
+
+      <!-- PAIN -->
+
+      <div class="box bad">
+
+        <span class="tag">
+          JIKA DIBIARKAN
+        </span>
+
+        <p id="rPain">
+          —
+        </p>
+
+      </div>
+
+
+      <!-- VALUE -->
+
+      <div class="box good">
+
+        <span class="tag">
+          JIKA DITANGANI
+        </span>
+
+        <p id="rValue">
+          —
+        </p>
+
+      </div>
+
+
+      <!-- LEVEL · INSIGHT · LANGKAH SELANJUTNYA -->
+      <!-- Section ini SELALU tampil dan sama strukturnya untuk
+           semua hasil (data belum ada / sudah mature / kasus normal),
+           supaya semua audiens mendapat insight & rekomendasi aksi
+           dengan format yang konsisten. -->
+
+      <div class="maturity-box">
+
+        <div class="m-top">
+
+          <div
+            class="maturity-badge"
+            id="rMaturityLevel"
+          >
+            —
+          </div>
+
+          <div
+            class="m-title"
+            id="rMaturityTitle"
+          >
+            —
+          </div>
+
+        </div>
+
+        <p
+          class="m-desc"
+          id="rMaturityDesc"
+        >
+          —
+        </p>
+
+        <div class="m-steps">
+
+          <div
+            class="m-step"
+            id="stepUpskill"
+          >
+            UPSKILL
+          </div>
+
+          <div
+            class="m-step"
+            id="stepStartSmall"
+          >
+            START SMALL
+          </div>
+
+          <div
+            class="m-step"
+            id="stepHire"
+          >
+            HIRE
+          </div>
+
+          <div
+            class="m-step"
+            id="stepScale"
+          >
+            SCALE
+          </div>
+
+        </div>
+
+        <div class="insight-callout">
+          <b>INSIGHT:</b>
+          <span id="rInsightText">—</span>
+          <br><br>
+          <b>LANGKAH SELANJUTNYA:</b>
+          <span id="rNextStepText">—</span>
+        </div>
+
+
+        <!--
+          CONTOH KASUS SERUPA — ini adalah "template jawaban":
+          bagian ini SELALU tampil dan berisi contoh kasus nyata
+          untuk aspek prioritas peserta, meniru pembahasan yang
+          biasanya hanya didapat lewat diskusi langsung bersama
+          mentor (Sesi 4). Dengan begitu, peserta yang canvasnya
+          tidak dibahas langsung di kelas tetap mendapat insight
+          yang setara.
+        -->
+
+        <div class="insight-callout" style="margin-top:10px; border-left-color:#0E9488;">
+          <b>CONTOH KASUS SERUPA:</b>
+          <span id="rExampleText">—</span>
+        </div>
+
+      </div>
+
+
+      <!-- DEEP INSIGHT -->
+
+      <div
+        class="final-insight"
+        id="finalInsight"
+      >
+
+        <h3>
+          DETAIL ANALISIS
+        </h3>
+
+        <div class="insight-grid">
+
+          <div class="insight-item">
+
+            <span>
+              DATA READINESS
+            </span>
+
+            <b id="rReadiness">
+              —
+            </b>
+
+          </div>
+
+
+          <div class="insight-item">
+
+            <span>
+              PENGGUNA INSIGHT
+            </span>
+
+            <b id="rStakeholder">
+              —
+            </b>
+
+          </div>
+
+
+          <div class="insight-item">
+
+            <span>
+              FREKUENSI
+            </span>
+
+            <b id="rFrequency">
+              —
+            </b>
+
+          </div>
+
+
+          <div class="insight-item">
+
+            <span>
+              BUSINESS IMPACT
+            </span>
+
+            <b id="rImpact">
+              —
+            </b>
+
+          </div>
+
+
+          <div
+            class="insight-item"
+            id="rCostItem"
+          >
+
+            <span>
+              ESTIMASI BIAYA DA
+            </span>
+
+            <b id="rCost">
+              —
+            </b>
+
+          </div>
+
+
+          <div
+            class="insight-item"
+            id="rDifferenceItem"
+          >
+
+            <span>
+              SELISIH ESTIMASI
+            </span>
+
+            <b id="rDifference">
+              —
+            </b>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- BARS -->
+
+      <div class="bars">
+
+        <h3>
+          PETA GAP 6 ASPEK BISNIS ANDA
+        </h3>
+
+        <div id="rBars"></div>
+
+      </div>
+
+
+      <!-- FOOTER -->
+
+      <div
+        class="footer-box"
+        id="rFooter"
+      >
+
+        <div
+          class="lvl"
+          id="rLevel"
+        >
+          —
+        </div>
+
+        <div
+          class="act"
+          id="rAction"
+        >
+          —
+        </div>
+
+        <div
+          class="desc"
+          id="rActionDesc"
+        >
+          —
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div class="cta">
+      Dibimbing · Data-Driven Business Forum —
+      Build Your Data-Driven Team
+    </div>
+
+
+    <div
+      class="actions"
+      style="justify-content:center;"
+    >
+
+      <button
+        class="secondary"
+        onclick="window.print()"
+      >
+        🖨️ Cetak / Simpan sebagai PDF
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   ASPECT CONFIG
+========================================================= */
+
+const ASPECTS = {
+
+  MARKETING: {
+    color: "#5B5FEF",
+
+    pain:
+      "anggaran iklan boros ke channel yang salah, dan campaign dievaluasi tanpa data performa yang jelas",
+
+    value:
+      "efisiensi anggaran iklan dapat ditingkatkan dan campaign yang terbukti efektif dapat diulang berdasarkan data",
+
+    example:
+      "Contoh kasus: sebuah brand rutin membagi anggaran iklan ke banyak channel tanpa tahu channel mana yang benar-benar mendatangkan penjualan. Setelah data performa iklan dianalisis, terlihat sebagian besar anggaran mengalir ke channel dengan hasil rendah. Anggaran dialihkan ke channel yang terbukti efektif, dan efisiensi biaya iklan meningkat dalam waktu singkat."
+  },
+
+  SALES: {
+    color: "#1E88E5",
+
+    pain:
+      "prediksi closing meleset dan tidak ada pola jelas mengapa sebagian deal berhasil sementara yang lain gagal",
+
+    value:
+      "tim sales dapat mengenali pola konversi dan memprioritaskan prospek berdasarkan data",
+
+    example:
+      "Contoh kasus: tim sales mengejar semua prospek dengan cara yang sama karena tidak tahu pola prospek yang paling mungkin closing. Setelah pola dari deal-deal sebelumnya dipelajari, tim bisa memprioritaskan prospek dengan ciri serupa, sehingga rasio closing meningkat tanpa menambah jumlah leads yang dikejar."
+  },
+
+  PRODUCT: {
+    color: "#0E9488",
+
+    pain:
+      "penyebab user berhenti menggunakan produk tidak pernah benar-benar diketahui dan hanya diduga-duga",
+
+    value:
+      "fitur yang benar-benar digunakan dan alasan pelanggan berhenti dapat diidentifikasi sehingga keputusan produk lebih terarah",
+
+    example:
+      "Contoh kasus: sebuah aplikasi kehilangan banyak pengguna tanpa alasan yang jelas. Setelah data pemakaian dicek, terlihat pengguna yang tidak mencoba satu fitur kunci di minggu pertama cenderung berhenti memakai aplikasi. Tim produk lalu mendorong pengguna baru mencoba fitur tersebut lebih awal, dan jumlah pengguna yang berhenti pun menurun."
+  },
+
+  FINANCE: {
+    color: "#2E7D32",
+
+    pain:
+      "anggaran dan proyeksi pendapatan meleset karena masih bergantung pada perkiraan kasar",
+
+    value:
+      "proyeksi keuangan menjadi lebih terukur dan peluang efisiensi biaya dapat ditemukan lebih awal",
+
+    example:
+      "Contoh kasus: sebuah perusahaan menyusun anggaran tahunan dari perkiraan kasar tiap divisi, dan hasilnya sering meleset jauh dari kenyataan. Setelah data keuangan sebelumnya dipakai untuk memperkirakan pendapatan dan biaya, anggaran menjadi lebih akurat dan peluang penghematan biaya lebih mudah ditemukan sejak awal tahun."
+  },
+
+  OPERATIONS: {
+    color: "#E07A29",
+
+    pain:
+      "hambatan proses kerja baru diketahui setelah menjadi masalah besar",
+
+    value:
+      "alur kerja dan penggunaan sumber daya dapat dipantau sehingga hambatan lebih cepat ditemukan",
+
+    example:
+      "Contoh kasus: sebuah gudang baru menyadari ada hambatan proses setelah pengiriman terlambat berulang kali. Setelah alur kerja dipantau lewat data operasional harian, titik yang menyumbat proses bisa dikenali lebih awal dan sumber daya dapat disesuaikan sebelum masalah membesar."
+  },
+
+  MANAGEMENT: {
+    color: "#7B4FA0",
+
+    pain:
+      "keputusan penting masih banyak bergantung pada pengalaman dan diskusi dibanding data yang terukur",
+
+    value:
+      "keputusan penting dapat didukung oleh laporan dan data performa bisnis yang lebih jelas",
+
+    example:
+      "Contoh kasus: keputusan ekspansi sebuah perusahaan sebelumnya banyak diambil dari diskusi dan pengalaman tanpa data pendukung yang kuat. Setelah performa bisnis dirangkum dalam laporan berkala, manajemen bisa membandingkan pilihan ekspansi berdasarkan data, dan mengambil keputusan dengan risiko yang lebih terukur."
+  }
+
+};
+
+
+/* =========================================================
+   LABEL
+========================================================= */
+
+const GAP_LABELS = {
+
+  0:
+    "Data-Driven",
+
+  1:
+    "Sebagian Data-Driven",
+
+  2:
+    "Berbasis Asumsi"
+
+};
+
+
+const IMPACT_LABELS = {
+
+  1:
+    "Rendah",
+
+  2:
+    "Sedang",
+
+  3:
+    "Tinggi"
+
+};
+
+
+const READINESS_LABELS = {
+
+  none:
+    "Belum ada data",
+
+  raw:
+    "Ada, tapi belum diolah",
+
+  ready:
+    "Ada & sudah diolah"
+
+};
+
+
+const STAKEHOLDER_LABELS = {
+
+  management:
+    "Manajemen",
+
+  team:
+    "Tim terkait",
+
+  all:
+    "Lintas level"
+
+};
+
+
+const FREQUENCY_LABELS = {
+
+  rare:
+    "Sesekali",
+
+  periodic:
+    "Mingguan / bulanan",
+
+  daily:
+    "Harian / rutin"
+
+};
+
+
+/* =========================================================
+   STATE
+========================================================= */
+
+const state = {
+
+  answers: {},
+
+  deep: {},
+
+  impact: 0,
+
+  daCost: 0,
+
+  topAspect: null,
+
+  topScore: 0
+
+};
+
+
+/* =========================================================
+   ELEMENT
+========================================================= */
+
+const uploadZone =
+  document.getElementById("uploadZone");
+
+const docxInput =
+  document.getElementById("docxInput");
+
+const fileStatus =
+  document.getElementById("fileStatus");
+
+const genBtn =
+  document.getElementById("genBtn");
+
+
+/* =========================================================
+   UPLOAD EVENTS
+========================================================= */
+
+uploadZone.addEventListener(
+  "click",
+  () => docxInput.click()
+);
+
+
+uploadZone.addEventListener(
+  "dragover",
+  e => {
+
+    e.preventDefault();
+
+    uploadZone.classList.add(
+      "dragover"
+    );
+
+  }
+);
+
+
+uploadZone.addEventListener(
+  "dragleave",
+  () => {
+
+    uploadZone.classList.remove(
+      "dragover"
+    );
+
+  }
+);
+
+
+uploadZone.addEventListener(
+  "drop",
+  e => {
+
+    e.preventDefault();
+
+    uploadZone.classList.remove(
+      "dragover"
+    );
+
+    const file =
+      e.dataTransfer.files[0];
+
+    if (file) {
+
+      processDocx(file);
+
+    }
+
+  }
+);
+
+
+docxInput.addEventListener(
+  "change",
+  e => {
+
+    const file =
+      e.target.files[0];
+
+    if (file) {
+
+      processDocx(file);
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   PROCESS DOCX
+========================================================= */
+
+async function processDocx(file) {
+
+  if (
+    !file.name
+      .toLowerCase()
+      .endsWith(".docx")
+  ) {
+
+    showFileError(
+      "File harus berformat .docx"
+    );
+
+    return;
+
+  }
+
+
+  fileStatus.className =
+    "file-status loading";
+
+  fileStatus.textContent =
+    "Membaca assessment...";
+
+
+  try {
+
+    const arrayBuffer =
+      await file.arrayBuffer();
+
+
+    const text =
+      await extractDocxText(
+        arrayBuffer
+      );
+
+
+    console.log(
+      "DOCX RAW TEXT:",
+      text
+    );
+
+
+    const parsed =
+      parseAssessment(text);
+
+
+    state.answers =
+      parsed;
+
+
+    const count =
+      Object.keys(parsed).length;
+
+
+    if (count < 6) {
+
+      throw new Error(
+        `Hanya ${count}/6 aspek yang berhasil dibaca.`
+      );
+
+    }
+
+
+    fileStatus.className =
+      "file-status success";
+
+    fileStatus.textContent =
+      `${file.name} berhasil dibaca. Semua 6 aspek ditemukan.`;
+
+
+    updateParsedSummary();
+
+
+    genBtn.disabled =
+      false;
+
+  }
+
+  catch (error) {
+
+    console.error(error);
+
+    showFileError(
+      "Assessment belum dapat dibaca dengan lengkap. Pastikan file DOCX berasal dari Data Needs Canvas dan checkbox sudah ditandai."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   EXTRACT DOCX TEXT (langsung dari XML)
+========================================================= */
+
+/*
+ * CATATAN PENTING:
+ *
+ * Checkbox pada Data Needs Canvas dibuat sebagai native
+ * Word checkbox content control (<w:sdt> berisi <w14:checkbox>).
+ * Simbol tercentang (☒) berada di dalam <w:sdtContent>, yaitu
+ * satu level lebih dalam dari teks biasa.
+ *
+ * Mammoth.js (dan cara ekstraksi teks yang naif) sering
+ * TIDAK mengambil teks di dalam struktur ini, sehingga simbol
+ * checkbox hilang total saat dibaca — akibatnya tool tidak
+ * pernah menemukan jawaban yang tercentang dan hasil tidak
+ * pernah muncul.
+ *
+ * Solusi: baca word/document.xml dari dalam file .docx
+ * (yang merupakan arsip ZIP) secara langsung, lalu ambil
+ * SEMUA elemen <w:t> di dalam tiap paragraf <w:p> tanpa
+ * peduli seberapa dalam elemen tersebut bersarang. Dengan
+ * begitu, teks di dalam checkbox content control ikut terbaca.
+ */
+
+async function extractDocxText(
+  arrayBuffer
+) {
+
+  const zip =
+    await JSZip.loadAsync(
+      arrayBuffer
+    );
+
+
+  const documentEntry =
+    zip.file(
+      "word/document.xml"
+    );
+
+
+  if (
+    !documentEntry
+  ) {
+
+    throw new Error(
+      "word/document.xml tidak ditemukan. Pastikan file adalah .docx yang valid."
+    );
+
+  }
+
+
+  const xmlString =
+    await documentEntry.async(
+      "text"
+    );
+
+
+  const xmlDoc =
+    new DOMParser().parseFromString(
+      xmlString,
+      "application/xml"
+    );
+
+
+  const parserError =
+    xmlDoc.getElementsByTagName(
+      "parsererror"
+    );
+
+
+  if (
+    parserError.length > 0
+  ) {
+
+    throw new Error(
+      "Gagal membaca struktur XML dari file .docx."
+    );
+
+  }
+
+
+  const paragraphs =
+    xmlDoc.getElementsByTagName(
+      "w:p"
+    );
+
+
+  const lines = [];
+
+
+  for (
+    let i = 0;
+    i < paragraphs.length;
+    i++
+  ) {
+
+    const paragraph =
+      paragraphs[i];
+
+
+    /*
+     * Ambil SEMUA <w:t>, termasuk yang bersarang di dalam
+     * <w:sdt>/<w:sdtContent> (checkbox), tabel bersarang,
+     * hyperlink, dll — karena getElementsByTagName mencari
+     * ke semua descendant, bukan hanya anak langsung.
+     */
+
+    const textNodes =
+      paragraph.getElementsByTagName(
+        "w:t"
+      );
+
+
+    let lineText =
+      "";
+
+
+    for (
+      let j = 0;
+      j < textNodes.length;
+      j++
+    ) {
+
+      lineText +=
+        textNodes[j]
+          .textContent;
+
+    }
+
+
+    lines.push(
+      lineText
+    );
+
+  }
+
+
+  return lines.join(
+    "\n"
+  );
+
+}
+
+
+/* =========================================================
+   PARSER
+========================================================= */
+
+function parseAssessment(text) {
+
+  /*
+   * Word dapat mengubah checkbox menjadi berbagai karakter
+   * ketika diekstrak oleh Mammoth.
+   *
+   * Parser di bawah mencoba beberapa pola umum.
+   */
+
+  const normalized =
+    text
+      .replace(/\r/g, "\n")
+      .replace(/\u00a0/g, " ")
+      .replace(/[ \t]+/g, " ");
+
+
+  const lines =
+    normalized
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean);
+
+
+  const result = {};
+
+
+  const aspectNames =
+    Object.keys(ASPECTS);
+
+
+  for (
+    let i = 0;
+    i < aspectNames.length;
+    i++
+  ) {
+
+    const aspect =
+      aspectNames[i];
+
+
+    const startIndex =
+      findAspectIndex(
+        lines,
+        aspect
+      );
+
+
+    if (startIndex === -1) {
+
+      continue;
+
+    }
+
+
+    const nextAspect =
+      i < aspectNames.length - 1
+        ? aspectNames[i + 1]
+        : null;
+
+
+    let endIndex =
+      lines.length;
+
+
+    if (nextAspect) {
+
+      const foundNext =
+        findAspectIndex(
+          lines,
+          nextAspect,
+          startIndex + 1
+        );
+
+
+      if (foundNext !== -1) {
+
+        endIndex =
+          foundNext;
+
+      }
+
+    }
+
+
+    const block =
+      lines.slice(
+        startIndex,
+        endIndex
+      );
+
+
+    const gap =
+      parseGapFromBlock(block);
+
+
+    const impact =
+      parseImpactFromBlock(block);
+
+
+    if (
+      gap !== null &&
+      impact !== null
+    ) {
+
+      result[aspect] = {
+
+        gap,
+
+        impact
+
+      };
+
+    }
+
+  }
+
+
+  /*
+   * Fallback parser:
+   * Jika format text DOCX berbeda,
+   * coba parsing berdasarkan posisi checkbox.
+   */
+
+  if (
+    Object.keys(result).length < 6
+  ) {
+
+    const fallback =
+      fallbackCheckboxParser(
+        normalized
+      );
+
+
+    Object.assign(
+      result,
+      fallback
+    );
+
+  }
+
+
+  return result;
+
+}
+
+
+/* =========================================================
+   FIND ASPECT
+========================================================= */
+
+function findAspectIndex(
+  lines,
+  aspect,
+  from = 0
+) {
+
+  const target =
+    aspect.toLowerCase();
+
+
+  for (
+    let i = from;
+    i < lines.length;
+    i++
+  ) {
+
+    if (
+      lines[i]
+        .toLowerCase()
+        .includes(target)
+    ) {
+
+      return i;
+
+    }
+
+  }
+
+
+  return -1;
+
+}
+
+
+/* =========================================================
+   CHECKBOX DETECTION
+========================================================= */
+
+function isChecked(line) {
+
+  return (
+
+    line.includes("☑") ||
+
+    line.includes("☒") ||
+
+    line.includes("✓") ||
+
+    line.includes("✔") ||
+
+    /\[\s*x\s*\]/i.test(line) ||
+
+    /\[\s*✓\s*\]/i.test(line)
+
+  );
+
+}
+
+
+function cleanCheckbox(line) {
+
+  return line
+    .replace(/☐/g, "")
+    .replace(/☑/g, "")
+    .replace(/☒/g, "")
+    .replace(/✓/g, "")
+    .replace(/✔/g, "")
+    .replace(/\[\s*x\s*\]/gi, "")
+    .replace(/\[\s*✓\s*\]/gi, "")
+    .trim();
+
+}
+
+
+/* =========================================================
+   GAP PARSER
+========================================================= */
+
+function parseGapFromBlock(
+  block
+) {
+
+  /*
+   * PENTING — logika ini SENGAJA berbasis POSISI checkbox,
+   * bukan kata kunci di dalam teks jawaban.
+   *
+   * Data Needs Canvas selalu menyusun 3 pilihan kondisi
+   * dengan urutan tetap: (1) berbasis data → (2) campuran →
+   * (3) berbasis asumsi/perkiraan. Dengan membaca posisi
+   * checkbox yang dicentang (bukan menebak dari kata-kata
+   * seperti "asumsi"/"insting"/"manual"), hasil penilaian
+   * tidak akan berubah hanya karena redaksi kalimat di
+   * canvas disesuaikan (mis. dibuat lebih sederhana untuk
+   * HR non-teknis). Ini juga menghindari kesalahan baca
+   * kalau satu kalimat kebetulan memuat kata yang mirip
+   * dengan tingkat lain.
+   *
+   * Ambil 3 baris tidak-kosong terakhir SEBELUM pertanyaan
+   * "Seberapa penting aspek ini" — itulah 3 pilihan kondisi,
+   * selalu dalam urutan tetap di atas.
+   */
+
+  const preLines = [];
+
+  for (const line of block) {
+
+    if (
+      line
+        .toLowerCase()
+        .includes(
+          "seberapa penting aspek"
+        )
+    ) {
+
+      break;
+
+    }
+
+
+    if (
+      line.trim() !== ""
+    ) {
+
+      preLines.push(line);
+
+    }
+
+  }
+
+
+  const optionLines =
+    preLines.slice(-3);
+
+
+  if (
+    optionLines.length !== 3
+  ) {
+
+    return null;
+
+  }
+
+
+  for (
+    let i = 0;
+    i < optionLines.length;
+    i++
+  ) {
+
+    if (
+      isChecked(
+        optionLines[i]
+      )
+    ) {
+
+      return i;
+
+    }
+
+  }
+
+
+  return null;
+
+}
+
+
+/* =========================================================
+   IMPACT PARSER
+========================================================= */
+
+function parseImpactFromBlock(
+  block
+) {
+
+  /*
+   * Sama seperti gap: berbasis POSISI, bukan kata kunci.
+   * Ambil 3 baris tidak-kosong pertama SETELAH pertanyaan
+   * "Seberapa penting aspek ini" — itulah 3 pilihan
+   * kepentingan, selalu dalam urutan tetap Rendah → Sedang →
+   * Tinggi.
+   */
+
+  let markerIndex =
+    -1;
+
+
+  for (
+    let i = 0;
+    i < block.length;
+    i++
+  ) {
+
+    if (
+      block[i]
+        .toLowerCase()
+        .includes(
+          "seberapa penting aspek"
+        )
+    ) {
+
+      markerIndex = i;
+
+      break;
+
+    }
+
+  }
+
+
+  if (
+    markerIndex === -1
+  ) {
+
+    return null;
+
+  }
+
+
+  const optionLines =
+    block
+      .slice(
+        markerIndex + 1
+      )
+      .filter(
+        line =>
+          line.trim() !== ""
+      )
+      .slice(0, 3);
+
+
+  if (
+    optionLines.length !== 3
+  ) {
+
+    return null;
+
+  }
+
+
+  for (
+    let i = 0;
+    i < optionLines.length;
+    i++
+  ) {
+
+    if (
+      isChecked(
+        optionLines[i]
+      )
+    ) {
+
+      return i + 1;
+
+    }
+
+  }
+
+
+  return null;
+
+}
+
+
+/* =========================================================
+   FALLBACK CHECKBOX PARSER
+========================================================= */
+
+function fallbackCheckboxParser(
+  text
+) {
+
+  const result = {};
+
+  /*
+   * Parser ini sengaja konservatif.
+   * Tidak akan mengarang nilai jika tidak
+   * menemukan pola yang cukup kuat.
+   */
+
+  const aspectNames =
+    Object.keys(ASPECTS);
+
+
+  for (
+    const aspect of aspectNames
+  ) {
+
+    const pos =
+      text
+        .toLowerCase()
+        .indexOf(
+          aspect.toLowerCase()
+        );
+
+
+    if (pos === -1) {
+
+      continue;
+
+    }
+
+
+    const section =
+      text.slice(
+        pos,
+        pos + 2200
+      );
+
+
+    const checked =
+      section.match(
+        /(☑|☒|✓|✔|\[\s*x\s*\])[^\n]*/gi
+      );
+
+
+    if (
+      !checked ||
+      checked.length < 2
+    ) {
+
+      continue;
+
+    }
+
+
+    /*
+     * Parser fallback ini hanya jalan kalau parser utama
+     * (berbasis posisi) gagal menemukan struktur blok yang
+     * jelas — jadi di sini kita TIDAK menebak "asumsikan
+     * paling buruk" saat tidak yakin. Kalau kata kunci tidak
+     * cocok, aspek tersebut dilewati saja (tidak dipaksakan
+     * masuk skor) daripada mengarang gap=2 secara default,
+     * karena itu akan membuat hasil bias ke arah "butuh
+     * Data Analyst" walau datanya tidak mendukung.
+     */
+
+    let gap =
+      null;
+
+
+    let impact =
+      null;
+
+
+    const first =
+      checked[0]
+        .toLowerCase();
+
+
+    if (
+      first.includes(
+        "data-driven"
+      ) ||
+      first.includes(
+        "berbasis data"
+      ) ||
+      first.includes(
+        "dashboard"
+      ) ||
+      first.includes(
+        "pipeline"
+      )
+    ) {
+
+      gap = 0;
+
+    }
+    else if (
+      first.includes(
+        "sebagian"
+      ) ||
+      first.includes(
+        "kadang"
+      ) ||
+      first.includes(
+        "campuran"
+      )
+    ) {
+
+      gap = 1;
+
+    }
+    else if (
+      first.includes(
+        "asumsi"
+      ) ||
+      first.includes(
+        "insting"
+      ) ||
+      first.includes(
+        "tidak pernah"
+      ) ||
+      first.includes(
+        "belum pernah"
+      ) ||
+      first.includes(
+        "manual"
+      ) ||
+      first.includes(
+        "perkiraan"
+      )
+    ) {
+
+      gap = 2;
+
+    }
+
+
+    const impactText =
+      checked[
+        checked.length - 1
+      ].toLowerCase();
+
+
+    if (
+      impactText.includes(
+        "rendah"
+      )
+    ) {
+
+      impact = 1;
+
+    }
+    else if (
+      impactText.includes(
+        "sedang"
+      )
+    ) {
+
+      impact = 2;
+
+    }
+    else if (
+      impactText.includes(
+        "tinggi"
+      )
+    ) {
+
+      impact = 3;
+
+    }
+
+
+    if (
+      gap !== null &&
+      impact !== null
+    ) {
+
+      result[aspect] = {
+
+        gap,
+
+        impact
+
+      };
+
+    }
+
+  }
+
+
+  return result;
+
+}
+
+
+/* =========================================================
+   SUMMARY
+========================================================= */
+
+function updateParsedSummary() {
+
+  const answers =
+    state.answers;
+
+
+  const count =
+    Object.keys(answers).length;
+
+
+  document.getElementById(
+    "parsedSummary"
+  ).style.display =
+    "block";
+
+
+  document.getElementById(
+    "parsedCount"
+  ).textContent =
+    `${count}/6`;
+
+
+  if (!count) {
+
+    return;
+
+  }
+
+
+  const maxGap =
+    Math.max(
+      ...Object.values(
+        answers
+      ).map(
+        x => x.gap
+      )
+    );
+
+
+  const scores =
+    Object.values(
+      answers
+    ).map(
+      x =>
+        x.gap *
+        x.impact
+    );
+
+
+  const total =
+    scores.reduce(
+      (a,b) =>
+        a + b,
+      0
+    );
+
+
+  document.getElementById(
+    "parsedGap"
+  ).textContent =
+    GAP_LABELS[maxGap];
+
+
+  document.getElementById(
+    "parsedScore"
+  ).textContent =
+    `${total}/${count * 6}`;
+
+}
+
+
+/* =========================================================
+   START ANALYSIS
+========================================================= */
+
+genBtn.addEventListener(
+  "click",
+  () => {
+
+    const answers =
+      state.answers;
+
+
+    if (
+      Object.keys(
+        answers
+      ).length < 6
+    ) {
+
+      return;
+
+    }
+
+
+    const scores =
+      getScores();
+
+
+    const total =
+      Object.values(
+        scores
+      ).reduce(
+        (a,b) =>
+          a + b,
+        0
+      );
+
+
+    /*
+     * RULE PALING PENTING:
+     *
+     * Semua aspek Data-Driven
+     * = jangan paksa mencari top aspect.
+     */
+
+    const allZero =
+      Object.values(
+        answers
+      ).every(
+        x => x.gap === 0
+      );
+
+
+    if (
+      allZero
+    ) {
+
+      renderDataMatureResult(
+        scores,
+        total
+      );
+
+      return;
+
+    }
+
+
+    const ranked =
+      Object.entries(
+        scores
+      ).sort(
+        (a,b) =>
+          b[1] - a[1]
+      );
+
+
+    const [
+      topName,
+      topScore
+    ] =
+      ranked[0];
+
+
+    state.topAspect =
+      topName;
+
+
+    state.topScore =
+      topScore;
+
+
+    showDeepAnalysis(
+      topName
+    );
+
+  }
+);
+
+
+/* =========================================================
+   SHOW DEEP ANALYSIS
+========================================================= */
+
+function showDeepAnalysis(
+  topName
+) {
+
+  document.getElementById(
+    "deepAnalysis"
+  ).style.display =
+    "block";
+
+
+  document.getElementById(
+    "deepAspect"
+  ).textContent =
+    titleCase(
+      topName
+    );
+
+
+  document.getElementById(
+    "deepAnalysis"
+  ).scrollIntoView({
+    behavior:
+      "smooth",
+
+    block:
+      "start"
+  });
+
+}
+
+
+/* =========================================================
+   CONTINUE LAYER 2
+========================================================= */
+
+document.getElementById(
+  "continueAnalysis"
+).addEventListener(
+  "click",
+  () => {
+
+    const readiness =
+      document.querySelector(
+        'input[name="dataReadiness"]:checked'
+      );
+
+
+    const stakeholder =
+      document.querySelector(
+        'input[name="stakeholder"]:checked'
+      );
+
+
+    const frequency =
+      document.querySelector(
+        'input[name="frequency"]:checked'
+      );
+
+
+    if (
+      !readiness ||
+      !stakeholder ||
+      !frequency
+    ) {
+
+      alert(
+        "Lengkapi 3 pertanyaan terlebih dahulu."
+      );
+
+      return;
+
+    }
+
+
+    state.deep = {
+
+      readiness:
+        readiness.value,
+
+      stakeholder:
+        stakeholder.value,
+
+      frequency:
+        frequency.value
+
+    };
+
+
+    /*
+     * DATA BELUM ADA
+     *
+     * Jangan memaksa peserta
+     * menghitung ROI Data Analyst.
+     */
+
+    if (
+      readiness.value === "none"
+    ) {
+
+      renderNoDataResult();
+
+      return;
+
+    }
+
+
+    document.getElementById(
+      "impactAnalysis"
+    ).style.display =
+      "block";
+
+
+    document.getElementById(
+      "impactAnalysis"
+    ).scrollIntoView({
+      behavior:
+        "smooth",
+
+      block:
+        "start"
+    });
+
+  }
+);
+
+
+/* =========================================================
+   DA COST SELECT
+========================================================= */
+
+document.getElementById(
+  "daCost"
+).addEventListener(
+  "change",
+  e => {
+
+    document.getElementById(
+      "customDaCost"
+    ).style.display =
+      e.target.value === "custom"
+        ? "block"
+        : "none";
+
+  }
+);
+
+
+/* =========================================================
+   FINISH LAYER 3
+========================================================= */
+
+document.getElementById(
+  "finishAnalysis"
+).addEventListener(
+  "click",
+  () => {
+
+    const impact =
+      Number(
+        document.getElementById(
+          "monthlyImpact"
+        ).value
+      );
+
+
+    let daCost =
+      document.getElementById(
+        "daCost"
+      ).value;
+
+
+    if (
+      daCost === "custom"
+    ) {
+
+      daCost =
+        document.getElementById(
+          "customDaCost"
+        ).value;
+
+    }
+
+
+    daCost =
+      Number(
+        daCost
+      );
+
+
+    if (
+      !impact ||
+      !daCost
+    ) {
+
+      alert(
+        "Isi estimasi business impact dan biaya Data Analyst."
+      );
+
+      return;
+
+    }
+
+
+    state.impact =
+      impact;
+
+
+    state.daCost =
+      daCost;
+
+
+    renderFinalResult();
+
+  }
+);
+
+
+/* =========================================================
+   ALL ZERO RESULT
+========================================================= */
+
+function renderDataMatureResult(
+  scores,
+  total
+) {
+
+  const company =
+    getCompany();
+
+
+  const industry =
+    getIndustry();
+
+
+  document.getElementById(
+    "rCompany"
+  ).textContent =
+    company;
+
+
+  document.getElementById(
+    "rIndustry"
+  ).textContent =
+    industry;
+
+
+  document.getElementById(
+    "rAspect"
+  ).textContent =
+    "DATA FOUNDATION SUDAH KUAT";
+
+
+  document.getElementById(
+    "rScore"
+  ).textContent =
+    "Seluruh aspek yang dinilai berada pada kondisi Data-Driven.";
+
+
+  document.getElementById(
+    "rHeadline"
+  ).style.background =
+    "#132A46";
+
+
+  document.getElementById(
+    "rPain"
+  ).textContent =
+    `${company} tidak menunjukkan gap penggunaan data yang mendesak pada assessment ini. Seluruh aspek berada pada kondisi Data-Driven.`;
+
+
+  document.getElementById(
+    "rValue"
+  ).textContent =
+    "Prioritas berikutnya bukan otomatis menambah Data Analyst, tetapi meningkatkan kualitas data, otomatisasi reporting, advanced analytics, predictive analytics, eksperimen, atau pemanfaatan insight yang lebih strategis.";
+
+
+  hideDeepDetails();
+
+
+  renderBars(
+    scores
+  );
+
+
+  document.getElementById(
+    "rLevel"
+  ).textContent =
+    `LEVEL 1 · Data sudah digunakan secara konsisten`;
+
+
+  document.getElementById(
+    "rAction"
+  ).textContent =
+    "Arah: OPTIMIZE DATA CAPABILITY";
+
+
+  document.getElementById(
+    "rActionDesc"
+  ).textContent =
+    "Assessment ini tidak menunjukkan kebutuhan mendesak untuk menambah Data Analyst. Fokus dapat diarahkan pada peningkatan kualitas, otomatisasi, dan kemampuan analitik dari data yang sudah tersedia.";
+
+
+  applyMaturitySection(
+    computeMaturityLevel(
+      total,
+      { allZero: true }
+    )
+  );
+
+
+  showResult();
+
+}
+
+
+/* =========================================================
+   NO DATA RESULT
+========================================================= */
+
+function renderNoDataResult() {
+
+  const top =
+    state.topAspect;
+
+
+  const info =
+    ASPECTS[top];
+
+
+  const company =
+    getCompany();
+
+
+  const industry =
+    getIndustry();
+
+
+  document.getElementById(
+    "rCompany"
+  ).textContent =
+    company;
+
+
+  document.getElementById(
+    "rIndustry"
+  ).textContent =
+    industry;
+
+
+  document.getElementById(
+    "rAspect"
+  ).textContent =
+    titleCase(
+      top
+    );
+
+
+  document.getElementById(
+    "rScore"
+  ).textContent =
+    `Skor gap × kepentingan: ${state.topScore} / 6`;
+
+
+  document.getElementById(
+    "rHeadline"
+  ).style.background =
+    info.color;
+
+
+  document.getElementById(
+    "rPain"
+  ).textContent =
+    `Gap pada aspek ${titleCase(top)} cukup tinggi, tetapi data yang dibutuhkan belum tersedia secara memadai. Hal ini membuat analisis lanjutan belum menjadi prioritas pertama.`;
+
+
+  document.getElementById(
+    "rValue"
+  ).textContent =
+    "Prioritas pertama adalah membangun proses pengumpulan, pencatatan, standardisasi, dan kualitas data. Setelah data mulai konsisten, kebutuhan Data Analyst dapat dievaluasi kembali.";
+
+
+  fillDeepDetails();
+
+
+  document.getElementById(
+    "rImpact"
+  ).textContent =
+    "Belum dihitung";
+
+
+  document.getElementById(
+    "rCost"
+  ).textContent =
+    "Belum dihitung";
+
+
+  document.getElementById(
+    "rDifference"
+  ).textContent =
+    "Belum dihitung";
+
+
+  renderBars(
+    getScores()
+  );
+
+
+  document.getElementById(
+    "rLevel"
+  ).textContent =
+    "DATA READINESS · Belum siap dianalisis";
+
+
+  document.getElementById(
+    "rAction"
+  ).textContent =
+    "Rekomendasi: BUILD DATA FOUNDATION";
+
+
+  document.getElementById(
+    "rActionDesc"
+  ).textContent =
+    "Jangan langsung menambah Data Analyst hanya karena skor gap tinggi. Bangun data collection dan data quality terlebih dahulu, lalu evaluasi kembali kebutuhan analitik setelah data tersedia.";
+
+
+  applyMaturitySection(
+    computeMaturityLevel(
+      Object.values(
+        getScores()
+      ).reduce(
+        (a,b) => a + b,
+        0
+      ),
+      { topAspectLabel: titleCase(top), topAspectKey: top }
+    )
+  );
+
+
+  showResult();
+
+}
+
+
+/* =========================================================
+   FINAL RESULT
+========================================================= */
+
+function renderFinalResult() {
+
+  const top =
+    state.topAspect;
+
+
+  const info =
+    ASPECTS[top];
+
+
+  const company =
+    getCompany();
+
+
+  const industry =
+    getIndustry();
+
+
+  const impact =
+    state.impact;
+
+
+  const cost =
+    state.daCost;
+
+
+  const difference =
+    impact - cost;
+
+
+  document.getElementById(
+    "rCompany"
+  ).textContent =
+    company;
+
+
+  document.getElementById(
+    "rIndustry"
+  ).textContent =
+    industry;
+
+
+  document.getElementById(
+    "rAspect"
+  ).textContent =
+    titleCase(
+      top
+    );
+
+
+  document.getElementById(
+    "rScore"
+  ).textContent =
+    `Skor gap × kepentingan: ${state.topScore} / 6`;
+
+
+  document.getElementById(
+    "rHeadline"
+  ).style.background =
+    info.color;
+
+
+  document.getElementById(
+    "rPain"
+  ).textContent =
+    `Tanpa peningkatan analitik pada ${titleCase(top)}, ${company} berisiko terus mengalami: ${info.pain}.`;
+
+
+  document.getElementById(
+    "rValue"
+  ).textContent =
+    `Dengan kapabilitas analitik yang tepat, ${info.value}.`;
+
+
+  fillDeepDetails();
+
+
+  document.getElementById(
+    "rImpact"
+  ).textContent =
+    `${formatRupiah(impact)} / bulan`;
+
+
+  document.getElementById(
+    "rCost"
+  ).textContent =
+    `${formatRupiah(cost)} / bulan`;
+
+
+  document.getElementById(
+    "rDifference"
+  ).textContent =
+    formatRupiah(
+      difference
+    ) + " / bulan";
+
+
+  renderBars(
+    getScores()
+  );
+
+
+  /*
+   * REKOMENDASI AKHIR
+   *
+   * Tidak hanya berdasarkan score.
+   */
+
+  const readiness =
+    state.deep.readiness;
+
+
+  const frequency =
+    state.deep.frequency;
+
+
+  let action;
+  let desc;
+
+
+  /*
+   * DATA SUDAH ADA,
+   * TAPI BELUM DIOLAH
+   */
+
+  if (
+    readiness === "raw"
+  ) {
+
+    if (
+      impact >= cost
+    ) {
+
+      action =
+        "Rekomendasi: START SMALL";
+
+      desc =
+        "Data sudah tersedia dan estimasi business impact cukup besar dibandingkan biaya Data Analyst, tetapi data belum dimanfaatkan secara optimal. Mulai dengan use case analitik yang terfokus sebelum membangun fungsi data yang lebih besar.";
+
+    }
+    else {
+
+      action =
+        "Rekomendasi: OPTIMIZE FIRST";
+
+      desc =
+        "Data sudah tersedia tetapi belum dimanfaatkan secara optimal. Sebelum menambah biaya dedicated Data Analyst, mulai dengan satu use case yang jelas dan buktikan nilai analitik dari data yang sudah ada.";
+
+    }
+
+  }
+
+
+  /*
+   * DATA SUDAH READY
+   */
+
+  else if (
+    readiness === "ready"
+  ) {
+
+    /*
+     * Impact lebih kecil daripada cost.
+     */
+
+    if (
+      impact < cost
+    ) {
+
+      action =
+        "Rekomendasi: OPTIMIZE BEFORE HIRE";
+
+      desc =
+        "Data sudah tersedia dan telah diolah, tetapi estimasi business impact saat ini masih di bawah estimasi biaya Data Analyst. Pertimbangkan otomatisasi, proyek analitik terfokus, atau optimasi proses sebelum menambah headcount.";
+
+    }
+
+
+    /*
+     * Impact >= cost
+     * dan frekuensi rutin
+     */
+
+    else if (
+      impact >= cost &&
+      (
+        frequency === "daily" ||
+        frequency === "periodic"
+      )
+    ) {
+
+      action =
+        "Rekomendasi: EVALUATE DEDICATED DA";
+
+      desc =
+        "Data sudah tersedia dan digunakan, kebutuhan insight terjadi secara rutin, serta estimasi business impact cukup besar dibandingkan biaya Data Analyst. Kondisi ini dapat menjadi dasar untuk mengevaluasi kebutuhan Data Analyst dedicated.";
+
+    }
+
+
+    /*
+     * Impact >= cost
+     * tetapi frekuensi rendah
+     */
+
+    else {
+
+      action =
+        "Rekomendasi: START WITH PROJECT";
+
+      desc =
+        "Data sudah tersedia dan estimasi business impact cukup besar, tetapi kebutuhan insight belum rutin. Proyek analitik terfokus dapat digunakan terlebih dahulu untuk membuktikan kebutuhan sebelum membangun posisi dedicated.";
+
+    }
+
+  }
+
+
+  const maturity =
+    computeMaturityLevel(
+      Object.values(
+        getScores()
+      ).reduce(
+        (a,b) => a + b,
+        0
+      ),
+      { topAspectLabel: titleCase(top), topAspectKey: top }
+    );
+
+
+  /*
+   * Untuk Level 3, tajamkan pilihan antara "start-small"
+   * dan "hire" menggunakan perbandingan impact vs cost dan
+   * frekuensi kebutuhan insight yang sudah dihitung di atas.
+   */
+
+  if (
+    maturity.level === 3 &&
+    impact >= cost &&
+    (
+      frequency === "daily" ||
+      frequency === "periodic"
+    )
+  ) {
+
+    maturity.action =
+      "hire";
+
+    maturity.nextStep =
+      "Kebutuhan insight sudah rutin dan estimasi business impact-nya cukup besar dibanding biaya Data Analyst — kondisi ini dapat menjadi dasar untuk mengevaluasi perekrutan Data Analyst.";
+
+  }
+
+
+  applyMaturitySection(
+    maturity
+  );
+
+
+  showResult();
+
+}
+
+
+/* =========================================================
+   FILL DEEP DETAILS
+========================================================= */
+
+function fillDeepDetails() {
+
+  if (
+    !state.deep ||
+    !state.deep.readiness
+  ) {
+
+    return;
+
+  }
+
+
+  document.getElementById(
+    "rReadiness"
+  ).textContent =
+    READINESS_LABELS[
+      state.deep.readiness
+    ];
+
+
+  document.getElementById(
+    "rStakeholder"
+  ).textContent =
+    STAKEHOLDER_LABELS[
+      state.deep.stakeholder
+    ];
+
+
+  document.getElementById(
+    "rFrequency"
+  ).textContent =
+    FREQUENCY_LABELS[
+      state.deep.frequency
+    ];
+
+}
+
+
+/* =========================================================
+   HIDE DETAILS FOR ALL ZERO
+========================================================= */
+
+function hideDeepDetails() {
+
+  document.getElementById(
+    "rReadiness"
+  ).textContent =
+    "Seluruh aspek Data-Driven";
+
+
+  document.getElementById(
+    "rStakeholder"
+  ).textContent =
+    "Tidak perlu diperdalam";
+
+
+  document.getElementById(
+    "rFrequency"
+  ).textContent =
+    "Tidak perlu diperdalam";
+
+
+  document.getElementById(
+    "rImpact"
+  ).textContent =
+    "Tidak dihitung";
+
+
+  document.getElementById(
+    "rCost"
+  ).textContent =
+    "Tidak dihitung";
+
+
+  document.getElementById(
+    "rDifference"
+  ).textContent =
+    "Tidak dihitung";
+
+}
+
+
+/* =========================================================
+   RENDER BARS
+========================================================= */
+
+function renderBars(
+  scores
+) {
+
+  const barsEl =
+    document.getElementById(
+      "rBars"
+    );
+
+
+  barsEl.innerHTML =
+    "";
+
+
+  Object.entries(
+    scores
+  )
+  .sort(
+    (a,b) =>
+      b[1] - a[1]
+  )
+  .forEach(
+    ([name, score]) => {
+
+      const row =
+        document.createElement(
+          "div"
+        );
+
+
+      row.className =
+        "bar-row";
+
+
+      row.innerHTML = `
+
+        <div class="name">
+          ${titleCase(name)}
+        </div>
+
+        <div class="track">
+
+          <div
+            class="fill"
+            style="
+              width:${score / 6 * 100}%;
+              background:${ASPECTS[name].color};
+            "
+          ></div>
+
+        </div>
+
+        <div class="val">
+          ${score}/6
+        </div>
+
+      `;
+
+
+      barsEl.appendChild(
+        row
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   GET SCORES
+========================================================= */
+
+function getScores() {
+
+  const scores = {};
+
+
+  Object.entries(
+    state.answers
+  )
+  .forEach(
+    ([name, value]) => {
+
+      scores[name] =
+        value.gap *
+        value.impact;
+
+    }
+  );
+
+
+  return scores;
+
+}
+
+
+/* =========================================================
+   DATA CAPABILITY MATURITY (LEVEL 1–4)
+   Mengikuti framework di Term of Reference (Sesi 5).
+   Bagian ini SELALU diisi, di ketiga jalur hasil, supaya
+   semua audiens — bukan hanya yang datanya dievaluasi lebih
+   dalam — mendapat insight, level, dan langkah selanjutnya
+   yang setara.
+========================================================= */
+
+function computeMaturityLevel(
+  total,
+  opts
+) {
+
+  opts =
+    opts || {};
+
+
+  const top =
+    opts.topAspectLabel ||
+    "aspek prioritas Anda";
+
+
+  const example =
+    opts.topAspectKey &&
+    ASPECTS[opts.topAspectKey]
+      ? ASPECTS[
+          opts.topAspectKey
+        ].example
+      : "Contoh kasus: banyak perusahaan baru menyadari sebuah aspek bisnis butuh dukungan data setelah masalah di aspek itu terasa langsung ke hasil bisnis — bukan karena skor assessment semata. Assessment ini membantu melihat tanda-tandanya lebih awal, sebelum masalah itu membesar.";
+
+
+  if (
+    opts.allZero
+  ) {
+
+    return {
+      level: 1,
+      badge: "L1",
+      title: "Data Sudah Dimanfaatkan Secara Konsisten",
+      desc: "Sebagian besar keputusan bisnis pada assessment ini sudah didukung data yang memadai. Tim yang ada saat ini masih cukup untuk menjalankan kebutuhan analitik sehari-hari.",
+      action: null,
+      insight: "Kondisi ini menandakan data foundation yang cukup solid. Ruang berkembang berikutnya bukan lagi soal 'punya data atau tidak', tetapi soal kualitas data, otomatisasi, dan pemanfaatan insight yang lebih strategis.",
+      nextStep: "Pertahankan praktik yang sudah berjalan, lalu evaluasi kembali kebutuhan Data Analyst dedicated apabila kompleksitas data terus bertambah.",
+      example
+    };
+
+  }
+
+
+  if (
+    total <= 12
+  ) {
+
+    return {
+      level: 2,
+      badge: "L2",
+      title: "Volume & Kompleksitas Data Mulai Berkembang",
+      desc: "Beberapa aspek bisnis mulai membutuhkan kapabilitas analitik lebih dari sekadar laporan manual, meski belum mendesak untuk merekrut Data Analyst dedicated.",
+      action: "upskill",
+      insight: `${titleCase(top)} adalah aspek yang paling perlu diperkuat lebih dulu. Menunda peningkatan kapabilitas di aspek ini berisiko memperlambat kecepatan pengambilan keputusan seiring bisnis bertumbuh.`,
+      nextStep: "Mulai dengan meningkatkan kemampuan analitik tim yang sudah ada (upskilling) sebelum mempertimbangkan penambahan headcount.",
+      example
+    };
+
+  }
+
+
+  if (
+    total <= 24
+  ) {
+
+    return {
+      level: 3,
+      badge: "L3",
+      title: "Data Mulai Menjadi Faktor Penting Pengambilan Keputusan",
+      desc: "Gap antara kondisi data saat ini dan kebutuhan bisnis cukup terasa. Ini adalah titik yang umum menjadi alasan perusahaan mulai mengevaluasi kebutuhan Data Analyst.",
+      action: "start-small",
+      insight: `Tanpa dukungan analitik yang lebih terstruktur pada ${titleCase(top)}, risiko keputusan yang kurang tepat dan peluang bisnis yang terlewat akan terus terakumulasi.`,
+      nextStep: "Mulai dari kebutuhan yang paling mendesak — lewat proyek analitik terfokus atau Data Analyst level junior/entry-level — sebelum membangun tim yang lebih besar.",
+      example
+    };
+
+  }
+
+
+  return {
+    level: 4,
+    badge: "L4",
+    title: "Data Menjadi Keunggulan Kompetitif",
+    desc: "Data sudah menjadi faktor penting di banyak aspek bisnis sekaligus. Pada tahap ini, kapabilitas data idealnya dikelola oleh tim khusus, bukan lagi inisiatif satu orang.",
+    action: "scale",
+    insight: "Kebutuhan insight sudah lintas aspek dan kemungkinan besar bersifat rutin. Menunda pembentukan tim data berisiko membuat perusahaan kalah cepat dibanding kompetitor yang sudah data-driven.",
+    nextStep: "Evaluasi kebutuhan membangun dedicated data team, dengan struktur dan pembagian peran yang jelas di tiap aspek prioritas.",
+    example
+  };
+
+}
+
+
+function applyMaturitySection(
+  info
+) {
+
+  document.getElementById(
+    "rMaturityLevel"
+  ).textContent =
+    info.badge;
+
+
+  document.getElementById(
+    "rMaturityTitle"
+  ).textContent =
+    `LEVEL ${info.level} · ${info.title}`;
+
+
+  document.getElementById(
+    "rMaturityDesc"
+  ).textContent =
+    info.desc;
+
+
+  document.getElementById(
+    "rInsightText"
+  ).textContent =
+    info.insight;
+
+
+  document.getElementById(
+    "rNextStepText"
+  ).textContent =
+    info.nextStep;
+
+
+  const stepIds = {
+    "upskill": "stepUpskill",
+    "start-small": "stepStartSmall",
+    "hire": "stepHire",
+    "scale": "stepScale"
+  };
+
+
+  Object.values(
+    stepIds
+  ).forEach(
+    id =>
+      document.getElementById(
+        id
+      ).classList.remove(
+        "active"
+      )
+  );
+
+
+  if (
+    info.action &&
+    stepIds[info.action]
+  ) {
+
+    document.getElementById(
+      stepIds[info.action]
+    ).classList.add(
+      "active"
+    );
+
+  }
+
+
+  document.getElementById(
+    "rExampleText"
+  ).textContent =
+    info.example ||
+    "—";
+
+}
+
+
+/* =========================================================
+   SHOW RESULT
+========================================================= */
+
+function showResult() {
+
+  document.getElementById(
+    "result"
+  ).style.display =
+    "block";
+
+
+  document.getElementById(
+    "result"
+  ).scrollIntoView({
+    behavior:
+      "smooth",
+
+    block:
+      "start"
+  });
+
+}
+
+
+/* =========================================================
+   COMPANY / INDUSTRY
+========================================================= */
+
+function getCompany() {
+
+  return (
+    document.getElementById(
+      "companyName"
+    ).value.trim() ||
+    "Perusahaan Anda"
+  );
+
+}
+
+
+function getIndustry() {
+
+  return (
+    document.getElementById(
+      "industry"
+    ).value.trim() ||
+    "—"
+  );
+
+}
+
+
+/* =========================================================
+   FORMAT RUPIAH
+========================================================= */
+
+function formatRupiah(
+  value
+) {
+
+  return new Intl.NumberFormat(
+    "id-ID",
+    {
+      style:
+        "currency",
+
+      currency:
+        "IDR",
+
+      maximumFractionDigits:
+        0
+    }
+  ).format(
+    value
+  );
+
+}
+
+
+/* =========================================================
+   TITLE CASE
+========================================================= */
+
+function titleCase(
+  value
+) {
+
+  return value
+    .charAt(0)
+    .toUpperCase() +
+    value
+      .slice(1)
+      .toLowerCase();
+
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+document.getElementById(
+  "resetBtn"
+).addEventListener(
+  "click",
+  () => {
+
+    state.answers =
+      {};
+
+    state.deep =
+      {};
+
+    state.impact =
+      0;
+
+    state.daCost =
+      0;
+
+    state.topAspect =
+      null;
+
+    state.topScore =
+      0;
+
+
+    docxInput.value =
+      "";
+
+
+    document.getElementById(
+      "companyName"
+    ).value =
+      "";
+
+
+    document.getElementById(
+      "industry"
+    ).value =
+      "";
+
+
+    document.getElementById(
+      "parsedSummary"
+    ).style.display =
+      "none";
+
+
+    document.getElementById(
+      "deepAnalysis"
+    ).style.display =
+      "none";
+
+
+    document.getElementById(
+      "impactAnalysis"
+    ).style.display =
+      "none";
+
+
+    document.getElementById(
+      "result"
+    ).style.display =
+      "none";
+
+
+    document.getElementById(
+      "monthlyImpact"
+    ).value =
+      "";
+
+
+    document.getElementById(
+      "daCost"
+    ).value =
+      "";
+
+
+    document.getElementById(
+      "customDaCost"
+    ).value =
+      "";
+
+
+    document.getElementById(
+      "customDaCost"
+    ).style.display =
+      "none";
+
+
+    document.querySelectorAll(
+      'input[type="radio"]'
+    ).forEach(
+      input =>
+        input.checked =
+          false
+    );
+
+
+    document.getElementById(
+      "rMaturityLevel"
+    ).textContent =
+      "—";
+
+
+    document.getElementById(
+      "rMaturityTitle"
+    ).textContent =
+      "—";
+
+
+    document.getElementById(
+      "rMaturityDesc"
+    ).textContent =
+      "—";
+
+
+    document.getElementById(
+      "rInsightText"
+    ).textContent =
+      "—";
+
+
+    document.getElementById(
+      "rNextStepText"
+    ).textContent =
+      "—";
+
+
+    document.getElementById(
+      "rExampleText"
+    ).textContent =
+      "—";
+
+
+    document.querySelectorAll(
+      ".m-step"
+    ).forEach(
+      el =>
+        el.classList.remove(
+          "active"
+        )
+    );
+
+
+    fileStatus.textContent =
+      "";
+
+
+    fileStatus.className =
+      "file-status";
+
+
+    genBtn.disabled =
+      true;
+
+  }
+);
+
+</script>
+
+</body>
+</html>
